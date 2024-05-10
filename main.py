@@ -20,6 +20,7 @@ instrument_serial_info = {"42i-TL" : {"com_port": "",
                                    "measurements" : ["o3"],
                                    "serial": None}}
 def main():
+    #gets computer's avaliable com ports
     com_list = sf.get_com_ports()
     for instrument in instrument_serial_info.keys():
         valid_com_port = False
@@ -48,6 +49,7 @@ def main():
                 print("Invalid Input")
         instrument_serial_info[instrument]["com_port"] = com_input
         instrument_serial_info[instrument]["baudrate"] = baurdrate_input
+        com_list.remove(com_input)
     print()
     for instrument in instrument_serial_info:
         print(instrument + ":", instrument_serial_info[instrument]["com_port"], instrument_serial_info[instrument]['baudrate'])
@@ -69,6 +71,7 @@ def main():
         "42i-TL" : [],
         "49C" : []
     }
+    
     #checks if 3 hours has passed since sampling duration is 3 hours
     try:
         while dt.now() < start_time + td(seconds=15):
@@ -88,17 +91,22 @@ def main():
                             headers.append(f'{measurements} ({data[measurements]["unit"]})')
                         instrument_data[instrument].append(headers)    
                     instrument_data[instrument].append(list_data)
+                    print(list_data)
                 second_timer = dt.now()
+                print()
     except KeyboardInterrupt:
         print("Saving Data and Exiting Program")
         print(f'Duration: {dt.now() - start_time}')
     wb = Workbook()
+    #creates two sheets
     data_ws = {
         "42i-TL" : wb.active,
         "49C" : wb.create_sheet()
     }
     for instrument in instrument_data:
+        #names the sheet after the instrument
         data_ws[instrument].title = instrument
+        #loops through each data point and prints it to the excel cell
         for row_idx, row_data in enumerate(instrument_data[instrument], start=1):
             for col_idx, cell_value in enumerate(row_data, start=1):
                 data_ws[instrument].cell(row=row_idx, column=col_idx, value=cell_value)
