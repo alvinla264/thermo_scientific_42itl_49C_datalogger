@@ -33,7 +33,7 @@ def get_data(ser, compound_list, id):
         if response.find('\n') != -1:
             response = response[:response.index('\n') - 1]
         response = response.split()
-        print(response, len(response))
+        #print(response, len(response))
 
         if len(response) == 3:
             results[response[0]] = {"value" : float(response[1]),

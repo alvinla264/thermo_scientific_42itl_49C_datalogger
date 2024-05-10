@@ -8,12 +8,14 @@ import serial_func as sf
 from datetime import datetime as dt, timedelta as td
 from openpyxl import Workbook
 instrument_serial_info = {"42i-TL" : {"com_port": "",
-                                      "baudrate" : 0, 
+                                      "baudrate" : 0,
+                                      "id" : chr(128 + 42),
                                       "avaliable_baudrate": [1200, 2400 , 4800, 9600 , 19200 , 38400 , 57600 , 115200],
                                       "measurements" : ["no", "no2", "nox"],
                                       "serial": None},
                           "49C":  {"com_port": "",
                                    "baudrate" : 0,
+                                   "id" : chr(128 + 49),
                                    "avaliable_baudrate" : [1200, 2400 , 4800, 9600],
                                    "measurements" : ["o3"],
                                    "serial": None}}
@@ -61,30 +63,35 @@ def main():
             instrument_serial_info[instrument]["serial"] = ser_temp
     start_time = dt.now()
     second_timer = dt.now()
-    file_name = f'{start_time.date()}_{start_time.time()}.xlsx'
+    file_name = f'{start_time.date()}_{start_time.hour}-{start_time.minute}-{start_time.second}.xlsx'
+    print(file_name)
     instrument_data = {
         "42i-TL" : [],
         "49C" : []
     }
     #checks if 3 hours has passed since sampling duration is 3 hours
-    while dt.now() < start_time + td(hours=3):
-        #checks if a second has passed
-        if dt.now() - second_timer >= td(seconds=1):
-            data_collection_time = dt.now()
-            for instrument in instrument_serial_info:
-                #writes to the instrument requesting for the data
-                data = sf.get_data(instrument_serial_info[instrument]["serial"], instrument_serial_info[instrument]["measurements"])
-                list_data = [data_collection_time]
-                for measurements in data:
-                    list_data.append(data[measurements]['value'])
-                #creates first row of headers
-                if len(instrument_data[instrument]) == 0:
-                    headers = ["Time"]
+    try:
+        while dt.now() < start_time + td(seconds=15):
+            #checks if a second has passed
+            if dt.now() - second_timer >= td(seconds=1):
+                data_collection_time = dt.now()
+                for instrument in instrument_serial_info:
+                    #writes to the instrument requesting for the data
+                    data = sf.get_data(instrument_serial_info[instrument]["serial"], instrument_serial_info[instrument]["measurements"], instrument_serial_info[instrument]["id"])
+                    list_data = [f'{data_collection_time}']
                     for measurements in data:
-                        headers.append(f'{measurements} ({data[measurements]["value"]})')
-                    instrument_data[instrument].append(headers)    
-                instrument_data[instrument].append(list_data)
-            second_timer = dt.now()
+                        list_data.append(data[measurements]['value'])
+                    #creates first row of headers
+                    if len(instrument_data[instrument]) == 0:
+                        headers = ["Time"]
+                        for measurements in data:
+                            headers.append(f'{measurements} ({data[measurements]["unit"]})')
+                        instrument_data[instrument].append(headers)    
+                    instrument_data[instrument].append(list_data)
+                second_timer = dt.now()
+    except KeyboardInterrupt:
+        print("Saving Data and Exiting Program")
+        print(f'Duration: {dt.now() - start_time}')
     wb = Workbook()
     data_ws = {
         "42i-TL" : wb.active,
@@ -134,35 +141,19 @@ def serial_test():
     if not ser_42i:
         print("Unable to open 42iport")
         return
-    print(sf.get_data(ser_42i, instrument_serial_info["42i-TL"]['measurements'], chr(170)))
-
-
-    # ser_42i.write(f'{chr(170)}no2\r'.encode())
-    # data = ser_42i.read_until(b'\n')
-    # ser_42i.read_until(b'\r')
-    # print(data.decode())
-    # ser_42i.write(f'{chr(170)}nox\r'.encode())
-    # data = ser_42i.read_until(b'\n')
-    # ser_42i.read_until(b'\r')
-    # print(data.decode())
-    # ser_42i.write(f'{chr(170)}no\r'.encode())
-    # data = ser_42i.read_until(b'\n')
-    # ser_42i.read_until(b'\r')
-    # print(data.decode())
-
-    
-    # ser_49C = sf.open_serial_port("COM9", 9600)
-    # if not ser_49C:
-    #     ser_49C.close()
-    #     print("Unable to open 49C port")
-    #     return
-    # print(sf.get_data(ser_49C, instrument_serial_info["49C"]["measurements"],  chr(128 + 49)))
-    # ser_49C.write(f'{chr(128 + 49)}o3\r'.encode())
-    # data = ser_49C.read_until(b'\r')
-    # print(data)
-
+    print(sf.get_data(ser_42i, instrument_serial_info["42i-TL"]['measurements'], chr(170)))    
+    ser_49C = sf.open_serial_port("COM9", 9600)
+    if not ser_49C:
+        ser_49C.close()
+        print("Unable to open 49C port")
+        return
+    print(sf.get_data(ser_49C, instrument_serial_info["49C"]["measurements"],  chr(128 + 49)))
+    ser_49C.write(f'{chr(128 + 49)}o3\r'.encode())
+    data = ser_49C.read_until(b'\r')
+    print(data)
 
 if __name__ == "__main__":
     #excel_test()
-    #main()
-    serial_test()
+    main()
+    #serial_test()
+
