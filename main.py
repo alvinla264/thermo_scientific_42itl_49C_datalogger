@@ -74,7 +74,7 @@ def main():
     
     #checks if 3 hours has passed since sampling duration is 3 hours
     try:
-        while dt.now() < start_time + td(seconds=15):
+        while dt.now() < start_time + td(hours=3):
             #checks if a second has passed
             if dt.now() - second_timer >= td(seconds=1):
                 data_collection_time = dt.now()
